@@ -8,13 +8,13 @@
 
 %df=dir('../data/trainingData/*.csv');
 %{
-
+ %}
 %open('trainingGestureData.mat');
 importData('trainingGestureData.mat','trainingData');
 importData('validationGestureData.mat','validationData');
 importData('testGestureData.mat','testData');
 
-featureset = 0;  %  0 = velocity and angles,  1 = absolute positions
+featureset = 1;  %  0 = velocity and angles,  1 = absolute positions
 numActiveModels = 12;
 %csvInputFilesPerModel = 10 % 
 
@@ -23,6 +23,18 @@ model = cell(1,size(trainingData,1));
 modelData = cell(1, size(trainingData,1));  % , 10);
 %for i=1:size(dataName,2)
 
+GA = zeros(12,1);
+TA = zeros(1,1);
+state = zeros(1,1);
+iteration = zeros(1,1);
+
+states = 5;
+iter = 8;
+restart = 2;
+
+%for restart=1:5
+%for states=1:12
+%for iter=1:10
 
 for i=1:numActiveModels %size(trainingData{5});   % train i models
     clear data;
@@ -30,7 +42,7 @@ for i=1:numActiveModels %size(trainingData{5});   % train i models
     for j=1:size(trainingData{i},2) %1:10  % using j csv files
         %dataName{1,i} = strtok(df(i).name,'.')
 
-        disp(['Processing sequence ',trainingData{i}{j}]);
+        %disp(['Processing sequence ',trainingData{i}{j}]);
         [X,Y,tagset,Time]=load_file(trainingData{i}{j});
         if (featureset == 0)
            [ newFeatureData ] = extract_features( X, Time );
@@ -78,7 +90,7 @@ for i=1:numActiveModels %size(trainingData{5});   % train i models
     %             set to a value other than 2 ????
    % model{i} = hmmFit(modelData, 2, 'student', 'verbose', true);
 %        model{i} = hmmFit(modelData, 4, 'gauss', 'verbose', true, 'nRandomRestarts', 2, 'maxIter', 1);
-       model{i} = hmmFit(data, 7, 'gauss', 'verbose', true, 'nRandomRestarts', 2, 'maxIter', 3);
+       model{i} = hmmFit(data, states, 'gauss', 'verbose', true, 'nRandomRestarts', restart, 'maxIter', iter);
  %   model{i} = hmmFit(data, 6, 'student', 'verbose', true);
 
 end
@@ -95,10 +107,10 @@ end
 
 
 for i=1:12 %size(validationData{5});
-    modelData = cell(1,size(validationData{i},2));
-    for j=1:size(validationData{i},2)
-        disp(['Validation testing sequence: ',validationData{i}{j}]);
-        [X,Y,tagset,Time]=load_file(validationData{i}{j});
+    modelData = cell(1,size(testData{i},2));
+    for j=1:size(testData{i},2)
+        disp(['tesData testing sequence: ',testData{i}{j}]);
+        [X,Y,tagset,Time]=load_file(testData{i}{j});
         if (featureset == 0)
         [ newFeatureData ] = extract_features( X, Time );  % old extracted features (velocity)
         [ evaluateData ] = extract_gestures( newFeatureData , Y);
@@ -121,7 +133,7 @@ end
 
 % choose maximum likelihood model
 
-for i=1:12 %size(validationData{5}); % num of gesture models (12)
+for i=1:12 % num of gesture models (12)
  %   maxl = -inf;
   %  maxli = -1;
  % disp('SIZE valdatai}');
@@ -129,7 +141,7 @@ for i=1:12 %size(validationData{5}); % num of gesture models (12)
   
   %  disp('SIZE results{i}');
   %  size(results)
-    for j=1:size(validationData{i},2) %size(results{i},2) %size(validationData{i},2) % side of validation set for each gesture
+    for j=1:size(testData{i},2) %size(results{i},2) %size(validationData{i},2) % side of validation set for each gesture
     %    disp(['ML testing sequence: ',validationData{i}{j}]);
        % if (
      %  size(results{i,j})
@@ -158,13 +170,13 @@ for i=1:12 %size(validationData{5}); % num of gesture models (12)
        end
     end
 end
-   
+  
 % create prediction vectors to save predictions for each gesture (12)
 correctPredictions = zeros(12,1); %0;
-incorrectPredictions = zero(12,1) ;   %0;
+incorrectPredictions = zeros(12,1);   
 % check for percentage accuracy
 for i=1:numActiveModels
-     for j=1:size(validationData{i},2) 
+     for j=1:size(testData{i},2) 
           for l=1:size(results{i,j}{1})
             %  if ( maxLikelihood{i,j}(l,1) == i) correctPredictions = correctPredictions + 1;
            %   else incorrectPredictions = incorrectPredictions+1;
@@ -176,76 +188,21 @@ for i=1:numActiveModels
 end
 
 %disp('Correct predictions');
-correctPredictions
+%correctPredictions
 %disp('Incorrect predictions');
-incorrectPredictions
-accuracy = sum(correctPredictions) / (sum(correctPredictions) + sum(incorrectPredictions))
-% TODO:  Need code to create arrays for training, validation, and test data
+%incorrectPredictions
+gestureAccuracy = correctPredictions ./ (correctPredictions + incorrectPredictions)
+GA(:,1) = gestureAccuracy;
+totalAccuracy = sum(correctPredictions) / (sum(correctPredictions) + sum(incorrectPredictions))
+TA(1,1) = totalAccuracy;
+%states;
+state(1,1) = states;
+%iter;
+iteration(1,1) = iter;
 
-%results = cell(1,numel(df));
-
-
-%{
-dataName, 'P1_1_8_p19', 'P1_1_8_p21', 'P1_1_11_p28', 'P3_2_8_p29'};
-
-    disp(['Testing sequence: ',dataName{i}]);
-    [X,Y,tagset,Time]=load_file(dataName{i});
-    [ newFeatureData ] = extract_features( X, Time );
-
-    [ testData ] = extract_gestures( newFeatureData , Y);
-    logp = hmmLogprob(model, testData)
-    results{i} = logp; % hmmLogprob(model, testData);
-    
-end
-%}
-% TODO: need code to find maximum likelihood from results array
-
-
-% after obtaining logp of each test set, we choose the HMM with highest
-% logp ?  
-
-
-% try doing k-means of 1 and running a naive bayes? 
-
-
-
-
-
-%{
-dataName =  'P1_1_8_p19';
-disp(['Testing sequence ',dataName,'same gesture as P3_2_8_p29' ]);
-[X,Y,tagset,Time]=load_file(dataName);
-[ newFeatureData ] = extract_features( X, Time );
-
-[ testData ] = extract_gestures( newFeatureData , Y);
-logp = hmmLogprob(model, testData)
-
-
-
-dataName =  'P1_1_8_p21';
-disp(['Testing sequence ',dataName,'same gesture as P3_2_8_p29' ]);
-[X,Y,tagset,Time]=load_file(dataName);
-[ newFeatureData ] = extract_features( X, Time );
-
-[ testData ] = extract_gestures( newFeatureData , Y);
-logp = hmmLogprob(model, testData)
-
-
-
-dataName = 'P1_1_11_p28'; %  'P1_1_11_p22';
-disp(['Testing sequence ',dataName,'same gesture as P3_2_8_p29' ]);
-[X,Y,tagset,Time]=load_file(dataName);
-[ newFeatureData ] = extract_features( X, Time );
-
-[ testData ] = extract_gestures( newFeatureData , Y);
-logp = hmmLogprob(model, testData)
-%}
-
-
-%for n = 1:length(dataName)
-%   disp(['Testing sequence ',dataName(n)]);
-  %  [X,Y,tagset,Time]=load_file(dataName);
- %[ newFeatureData ] = extract_features( X, Time );
-
-% [ modelData ] = extract_gestures( newFeatureData , Y);
 %end
+%end
+%end
+
+M = [GA; TA; state; iteration];
+csvwrite('TestResults.csv',M);

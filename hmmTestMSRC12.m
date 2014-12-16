@@ -14,7 +14,7 @@ importData('trainingGestureData.mat','trainingData');
 importData('validationGestureData.mat','validationData');
 importData('testGestureData.mat','testData');
 
-featureset = 0;  %  0 = velocity and angles,  1 = absolute positions
+featureset = 1;  %  0 = velocity and angles,  1 = absolute positions
 numActiveModels = 12;
 %csvInputFilesPerModel = 10 % 
 
@@ -78,7 +78,7 @@ for i=1:numActiveModels %size(trainingData{5});   % train i models
     %             set to a value other than 2 ????
    % model{i} = hmmFit(modelData, 2, 'student', 'verbose', true);
 %        model{i} = hmmFit(modelData, 4, 'gauss', 'verbose', true, 'nRandomRestarts', 2, 'maxIter', 1);
-       model{i} = hmmFit(data, 7, 'gauss', 'verbose', true, 'nRandomRestarts', 2, 'maxIter', 3);
+       model{i} = hmmFit(data, 5, 'gauss', 'verbose', true, 'nRandomRestarts', 2, 'maxIter', 8);
  %   model{i} = hmmFit(data, 6, 'student', 'verbose', true);
 
 end
@@ -95,10 +95,10 @@ end
 
 
 for i=1:12 %size(validationData{5});
-    modelData = cell(1,size(validationData{i},2));
-    for j=1:size(validationData{i},2)
-        disp(['Validation testing sequence: ',validationData{i}{j}]);
-        [X,Y,tagset,Time]=load_file(validationData{i}{j});
+    modelData = cell(1,size(testData{i},2));
+    for j=1:size(testData{i},2)
+        disp(['Validation testing sequence: ',testData{i}{j}]);
+        [X,Y,tagset,Time]=load_file(testData{i}{j});
         if (featureset == 0)
         [ newFeatureData ] = extract_features( X, Time );  % old extracted features (velocity)
         [ evaluateData ] = extract_gestures( newFeatureData , Y);
@@ -129,7 +129,7 @@ for i=1:12 %size(validationData{5}); % num of gesture models (12)
   
   %  disp('SIZE results{i}');
   %  size(results)
-    for j=1:size(validationData{i},2) %size(results{i},2) %size(validationData{i},2) % side of validation set for each gesture
+    for j=1:size(testData{i},2) %size(results{i},2) %size(validationData{i},2) % side of validation set for each gesture
     %    disp(['ML testing sequence: ',validationData{i}{j}]);
        % if (
      %  size(results{i,j})
@@ -164,7 +164,7 @@ correctPredictions = zeros(12,1); %0;
 incorrectPredictions = zeros(12,1);   
 % check for percentage accuracy
 for i=1:numActiveModels
-     for j=1:size(validationData{i},2) 
+     for j=1:size(testData{i},2) 
           for l=1:size(results{i,j}{1})
             %  if ( maxLikelihood{i,j}(l,1) == i) correctPredictions = correctPredictions + 1;
            %   else incorrectPredictions = incorrectPredictions+1;
